@@ -1,0 +1,82 @@
+{
+  "entities": {
+    "UserPreferences": {
+      "title": "User Preferences",
+      "description": "User preferences and setup flags",
+      "type": "object",
+      "properties": {
+        "theme": { "type": "string", "enum": ["light", "dark", "system"] },
+        "tutorialCompleted": { "type": "boolean" },
+        "currency": { "type": "string" }
+      },
+      "required": ["theme", "tutorialCompleted", "currency"]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "A single financial transaction",
+      "type": "object",
+      "properties": {
+        "amount": { "type": "number" },
+        "category": { "type": "string" },
+        "date": { "type": "number" },
+        "description": { "type": "string" },
+        "type": { "type": "string", "enum": ["income", "expense"] }
+      },
+      "required": ["amount", "category", "date", "description", "type"]
+    },
+    "Task": {
+      "title": "Task",
+      "description": "A task to complete",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "date": { "type": "number" },
+        "completed": { "type": "boolean" }
+      },
+      "required": ["title", "date", "completed"]
+    },
+    "Budget": {
+      "title": "Budget",
+      "description": "Monthly budget for a category",
+      "type": "object",
+      "properties": {
+        "category": { "type": "string" },
+        "limit": { "type": "number" }
+      },
+      "required": ["category", "limit"]
+    },
+    "Goal": {
+      "title": "Goal",
+      "description": "Financial goal",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "target": { "type": "number" },
+        "current": { "type": "number" }
+      },
+      "required": ["title", "target", "current"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": { "$ref": "#/entities/UserPreferences" },
+      "description": "User preferences"
+    },
+    "users/{userId}/transactions/{transactionId}": {
+      "schema": { "$ref": "#/entities/Transaction" },
+      "description": "User financial transactions"
+    },
+    "users/{userId}/tasks/{taskId}": {
+      "schema": { "$ref": "#/entities/Task" },
+      "description": "User tasks"
+    },
+    "users/{userId}/budgets/{budgetId}": {
+      "schema": { "$ref": "#/entities/Budget" },
+      "description": "User category budgets"
+    },
+    "users/{userId}/goals/{goalId}": {
+      "schema": { "$ref": "#/entities/Goal" },
+      "description": "User financial goals"
+    }
+  }
+}

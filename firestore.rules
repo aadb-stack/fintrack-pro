@@ -1,0 +1,121 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() { return request.auth != null; }
+    function isUser(uid) { return isSignedIn() && request.auth.uid == uid; }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+
+    // UserPreferences
+    function isValidUserPrefs(data) {
+      return (
+        data.keys().hasAll(['theme', 'tutorialCompleted', 'currency']) &&
+        data.keys().size() <= 4 &&
+        data.theme is string && data.theme.size() <= 10 &&
+        data.tutorialCompleted is bool &&
+        data.currency is string && data.currency.size() <= 10 &&
+        (data.keys().hasAny(['initialBalanceSet']) ? data.initialBalanceSet is bool : true)
+      );
+    }
+    
+    // Transaction
+    function isValidTransaction(data) {
+      return (
+        data.keys().hasAll(['amount', 'category', 'date', 'description', 'type']) &&
+        data.keys().size() <= 5 &&
+        data.amount is number &&
+        data.category is string && data.category.size() <= 100 &&
+        data.date is number &&
+        data.description is string && data.description.size() <= 500 &&
+        data.type is string && (data.type == 'income' || data.type == 'expense')
+      );
+    }
+
+    // Task
+    function isValidTask(data) {
+      return (
+        data.keys().hasAll(['title', 'date', 'completed']) &&
+        data.keys().size() <= 3 &&
+        data.title is string && data.title.size() <= 200 &&
+        data.date is number &&
+        data.completed is bool
+      );
+    }
+
+    // Budget
+    function isValidBudget(data) {
+      return (
+        data.keys().hasAll(['category', 'limit']) &&
+        data.keys().size() <= 2 &&
+        data.category is string && data.category.size() <= 100 &&
+        data.limit is number
+      );
+    }
+
+    // Goal
+    function isValidGoal(data) {
+      return (
+        data.keys().hasAll(['title', 'target', 'current']) &&
+        data.keys().size() <= 3 &&
+        data.title is string && data.title.size() <= 200 &&
+        data.target is number &&
+        data.current is number
+      );
+    }
+
+    match /users/{userId} {
+      allow get: if isUser(userId) && isValidId(userId);
+      allow list: if isUser(userId) && isValidId(userId);
+      allow create: if isUser(userId) && isValidId(userId) && isValidUserPrefs(incoming());
+      allow update: if isUser(userId) && isValidId(userId) && isValidUserPrefs(incoming()) && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['theme', 'tutorialCompleted', 'currency', 'initialBalanceSet'])
+      );
+      allow delete: if isUser(userId) && isValidId(userId);
+      
+      match /transactions/{transactionId} {
+        allow get: if isUser(userId) && isValidId(transactionId);
+        allow list: if isUser(userId);
+        allow create: if isUser(userId) && isValidId(transactionId) && isValidTransaction(incoming());
+        allow update: if isUser(userId) && isValidId(transactionId) && isValidTransaction(incoming()) && (
+          incoming().diff(existing()).affectedKeys().hasOnly(['amount', 'category', 'date', 'description', 'type'])
+        );
+        allow delete: if isUser(userId) && isValidId(transactionId);
+      }
+
+      match /tasks/{taskId} {
+        allow get: if isUser(userId) && isValidId(taskId);
+        allow list: if isUser(userId);
+        allow create: if isUser(userId) && isValidId(taskId) && isValidTask(incoming());
+        allow update: if isUser(userId) && isValidId(taskId) && isValidTask(incoming()) && (
+          incoming().diff(existing()).affectedKeys().hasOnly(['title', 'date', 'completed'])
+        );
+        allow delete: if isUser(userId) && isValidId(taskId);
+      }
+
+      match /budgets/{budgetId} {
+        allow get: if isUser(userId) && isValidId(budgetId);
+        allow list: if isUser(userId);
+        allow create: if isUser(userId) && isValidId(budgetId) && isValidBudget(incoming());
+        allow update: if isUser(userId) && isValidId(budgetId) && isValidBudget(incoming()) && (
+          incoming().diff(existing()).affectedKeys().hasOnly(['category', 'limit'])
+        );
+        allow delete: if isUser(userId) && isValidId(budgetId);
+      }
+
+      match /goals/{goalId} {
+        allow get: if isUser(userId) && isValidId(goalId);
+        allow list: if isUser(userId);
+        allow create: if isUser(userId) && isValidId(goalId) && isValidGoal(incoming());
+        allow update: if isUser(userId) && isValidId(goalId) && isValidGoal(incoming()) && (
+          incoming().diff(existing()).affectedKeys().hasOnly(['title', 'target', 'current'])
+        );
+        allow delete: if isUser(userId) && isValidId(goalId);
+      }
+    }
+  }
+}
